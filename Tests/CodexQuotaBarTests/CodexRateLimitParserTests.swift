@@ -1,0 +1,52 @@
+import Foundation
+import XCTest
+@testable import CodexQuotaBar
+
+final class CodexRateLimitParserTests: XCTestCase {
+    func testDecodesCodexAndSparkBuckets() throws {
+        let message: [String: Any] = [
+            "id": 2,
+            "result": [
+                "rateLimits": [
+                    "limitId": "codex",
+                    "primary": ["usedPercent": 4, "resetsAt": 1_780_662_851],
+                    "secondary": ["usedPercent": 6, "resetsAt": 1_781_163_698],
+                    "credits": ["balance": "0"]
+                ],
+                "rateLimitsByLimitId": [
+                    "codex": [
+                        "limitId": "codex",
+                        "primary": ["usedPercent": 4],
+                        "secondary": ["usedPercent": 6]
+                    ],
+                    "codex_bengalfox": [
+                        "limitId": "codex_bengalfox",
+                        "limitName": "GPT-5.3-Codex-Spark",
+                        "primary": ["usedPercent": 0],
+                        "secondary": ["usedPercent": 0]
+                    ]
+                ]
+            ]
+        ]
+
+        let snapshot = try CodexRateLimitParser.decodeRateLimits(from: message)
+
+        XCTAssertEqual(snapshot.codex?.limitId, "codex")
+        XCTAssertEqual(snapshot.codex?.primary?.remainingPercent, 96)
+        XCTAssertEqual(snapshot.codex?.secondary?.remainingPercent, 94)
+        XCTAssertEqual(snapshot.codex?.credits?.balance, "0")
+        XCTAssertEqual(snapshot.spark?.displayName, "GPT-5.3-Codex-Spark")
+        XCTAssertEqual(snapshot.spark?.primary?.remainingPercent, 100)
+    }
+
+    func testParsesTargetJsonRpcLine() throws {
+        let data = """
+        {"id":1,"result":{}}
+        {"id":2,"result":{"rateLimits":{}}}
+        """.data(using: .utf8)!
+
+        let message = try CodexRateLimitParser.parseTargetMessage(from: data)
+
+        XCTAssertEqual(message?["id"] as? Int, 2)
+    }
+}
