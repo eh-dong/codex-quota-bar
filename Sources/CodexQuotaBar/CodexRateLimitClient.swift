@@ -23,6 +23,7 @@ final class CodexRateLimitClient {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: codexPath)
         process.arguments = ["app-server", "--listen", "stdio://"]
+        process.environment = CodexProcessEnvironment.make(base: ProcessInfo.processInfo.environment)
 
         let input = Pipe()
         let output = Pipe()
@@ -82,7 +83,19 @@ final class CodexRateLimitClient {
         process.terminate()
         let stderr = String(data: errorOutput.fileHandleForReading.availableData, encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        throw QuotaBarError.timeout(stderr?.isEmpty == false ? stderr! : "Codex app-server timed out")
+        throw QuotaBarError.timeout(errorMessage(from: stderr))
+    }
+
+    private func errorMessage(from stderr: String?) -> String {
+        guard let stderr, !stderr.isEmpty else {
+            return "Codex app-server timed out"
+        }
+
+        if stderr.contains("env: node: No such file or directory") {
+            return "Codex CLI depends on node; Homebrew path is missing from the app environment. Original error: \(stderr)"
+        }
+
+        return stderr
     }
 
     private static func findCodexPath() -> String {
@@ -96,6 +109,39 @@ final class CodexRateLimitClient {
             return candidate
         }
         return "/opt/homebrew/bin/codex"
+    }
+}
+
+enum CodexProcessEnvironment {
+    private static let requiredPathEntries = [
+        "/opt/homebrew/bin",
+        "/usr/local/bin",
+        "/usr/bin",
+        "/bin",
+        "/usr/sbin",
+        "/sbin"
+    ]
+
+    static func make(base: [String: String]) -> [String: String] {
+        var environment = base
+        environment["PATH"] = mergedPath(existing: base["PATH"])
+        return environment
+    }
+
+    private static func mergedPath(existing: String?) -> String {
+        var seen = Set<String>()
+        var entries: [String] = []
+
+        func append(_ entry: String) {
+            guard !entry.isEmpty, !seen.contains(entry) else { return }
+            seen.insert(entry)
+            entries.append(entry)
+        }
+
+        requiredPathEntries.forEach(append)
+        existing?.split(separator: ":").map(String.init).forEach(append)
+
+        return entries.joined(separator: ":")
     }
 }
 
