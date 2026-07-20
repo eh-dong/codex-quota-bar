@@ -178,7 +178,12 @@ enum CodexRateLimitParser {
             }
         }
 
-        return RateLimitsSnapshot(codex: codex, spark: spark)
+        let resetCreditsAvailableCount = (result["rateLimitResetCredits"] as? [String: Any])?["availableCount"] as? Int
+        return RateLimitsSnapshot(
+            codex: codex,
+            spark: spark,
+            resetCreditsAvailableCount: resetCreditsAvailableCount
+        )
     }
 
     private static func decodeLimit(_ value: [String: Any]?) -> RateLimitSnapshot? {
@@ -196,7 +201,11 @@ enum CodexRateLimitParser {
         guard let value, let usedPercent = value["usedPercent"] as? Int else { return nil }
         let resetsAtValue = value["resetsAt"] as? NSNumber
         let resetsAt = resetsAtValue.map { Date(timeIntervalSince1970: $0.doubleValue) }
-        return RateLimitWindow(usedPercent: usedPercent, resetsAt: resetsAt)
+        return RateLimitWindow(
+            usedPercent: usedPercent,
+            resetsAt: resetsAt,
+            windowDurationMins: value["windowDurationMins"] as? Int
+        )
     }
 
     private static func decodeCredits(_ value: [String: Any]?) -> CreditsSnapshot? {

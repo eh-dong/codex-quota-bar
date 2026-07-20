@@ -5,14 +5,21 @@
 CodexQuotaBar is a lightweight macOS menu bar app that shows your local Codex
 rate-limit remaining percentages.
 
-The menu bar title uses this compact format:
+The menu bar title derives compact labels from the windows returned by Codex:
 
 ```text
 Codex 96%/W82%
+Codex W65%
 ```
 
-- `96%`: remaining Codex quota in the primary 5-hour window.
-- `W82%`: remaining Codex quota in the secondary 1-week window.
+- `96%/W82%`: the legacy primary 5-hour and secondary 1-week windows.
+- `W65%`: a current response with only a weekly window and 65% remaining.
+- Window durations use compact exact units such as `30m`, `5h`, `1d`, and `1w`;
+  absent windows are omitted.
+
+The dropdown menu uses the same duration labels for reset details. When Codex
+reports reset credits, it also shows `Resets available: N` once. This count is
+read-only: CodexQuotaBar does not consume credits or infer their expiration.
 
 DeepSeek API balance can also be shown in the dropdown menu as an optional
 integration.

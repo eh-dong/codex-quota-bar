@@ -37,6 +37,56 @@ final class CodexRateLimitParserTests: XCTestCase {
         XCTAssertEqual(snapshot.codex?.credits?.balance, "0")
         XCTAssertEqual(snapshot.spark?.displayName, "GPT-5.3-Codex-Spark")
         XCTAssertEqual(snapshot.spark?.primary?.remainingPercent, 100)
+        XCTAssertNil(snapshot.resetCreditsAvailableCount)
+    }
+
+    func testDecodesWeeklyOnlyWindowAndResetCredits() throws {
+        let message: [String: Any] = [
+            "id": 2,
+            "result": [
+                "rateLimits": [
+                    "limitId": "codex",
+                    "primary": [
+                        "usedPercent": 35,
+                        "windowDurationMins": 10080
+                    ],
+                    "secondary": NSNull()
+                ],
+                "rateLimitResetCredits": ["availableCount": 3]
+            ]
+        ]
+
+        let snapshot = try CodexRateLimitParser.decodeRateLimits(from: message)
+
+        XCTAssertEqual(snapshot.codex?.primary?.windowDurationMins, 10080)
+        XCTAssertNil(snapshot.codex?.secondary)
+        XCTAssertEqual(snapshot.resetCreditsAvailableCount, 3)
+        XCTAssertEqual(QuotaFormatter.menuBarTitle(for: snapshot.codex), "Codex W65%")
+    }
+
+    func testDecodesZeroResetCredits() throws {
+        let message: [String: Any] = [
+            "id": 2,
+            "result": [
+                "rateLimits": [String: Any](),
+                "rateLimitResetCredits": ["availableCount": 0]
+            ]
+        ]
+
+        let snapshot = try CodexRateLimitParser.decodeRateLimits(from: message)
+
+        XCTAssertEqual(snapshot.resetCreditsAvailableCount, 0)
+    }
+
+    func testMissingResetCreditsStayAbsent() throws {
+        let message: [String: Any] = [
+            "id": 2,
+            "result": ["rateLimits": [String: Any]()]
+        ]
+
+        let snapshot = try CodexRateLimitParser.decodeRateLimits(from: message)
+
+        XCTAssertNil(snapshot.resetCreditsAvailableCount)
     }
 
     func testParsesTargetJsonRpcLine() throws {

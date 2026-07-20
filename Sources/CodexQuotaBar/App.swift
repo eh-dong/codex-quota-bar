@@ -102,6 +102,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 menu.addItem(.separator())
                 addCodexSection(title: spark.displayName, limit: spark)
             }
+
+            if let resetCreditsAvailableCount = snapshot.resetCreditsAvailableCount {
+                menu.addItem(disabled: "Resets available: \(resetCreditsAvailableCount)")
+            }
         } else {
             menu.addItem(disabled: QuotaFormatter.unknownTitle)
         }
@@ -132,14 +136,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func addCodexSection(title: String, limit: RateLimitSnapshot?) {
-        guard let limit else {
-            menu.addItem(disabled: "\(title): no data")
-            return
-        }
+        guard let limit else { return }
 
         menu.addItem(disabled: title)
-        menu.addItem(disabled: "5h quota: \(QuotaFormatter.windowDetail(limit.primary, shortWindow: true))")
-        menu.addItem(disabled: "1w quota: \(QuotaFormatter.windowDetail(limit.secondary, shortWindow: false))")
+        if let primary = limit.primary {
+            let label = QuotaFormatter.windowLabel(for: primary, role: .primary)
+            menu.addItem(disabled: "\(label) quota: \(QuotaFormatter.windowDetail(primary, role: .primary))")
+        }
+        if let secondary = limit.secondary {
+            let label = QuotaFormatter.windowLabel(for: secondary, role: .secondary)
+            menu.addItem(disabled: "\(label) quota: \(QuotaFormatter.windowDetail(secondary, role: .secondary))")
+        }
 
         if let credits = limit.credits {
             menu.addItem(disabled: "Credits: \(credits.balance ?? "0")")

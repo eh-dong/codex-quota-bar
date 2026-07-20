@@ -3,6 +3,17 @@ import Foundation
 struct RateLimitsSnapshot {
     let codex: RateLimitSnapshot?
     let spark: RateLimitSnapshot?
+    let resetCreditsAvailableCount: Int?
+
+    init(
+        codex: RateLimitSnapshot?,
+        spark: RateLimitSnapshot?,
+        resetCreditsAvailableCount: Int? = nil
+    ) {
+        self.codex = codex
+        self.spark = spark
+        self.resetCreditsAvailableCount = resetCreditsAvailableCount
+    }
 }
 
 struct RateLimitSnapshot {
@@ -20,6 +31,13 @@ struct RateLimitSnapshot {
 struct RateLimitWindow {
     let usedPercent: Int
     let resetsAt: Date?
+    let windowDurationMins: Int?
+
+    init(usedPercent: Int, resetsAt: Date?, windowDurationMins: Int? = nil) {
+        self.usedPercent = usedPercent
+        self.resetsAt = resetsAt
+        self.windowDurationMins = windowDurationMins
+    }
 
     var remainingPercent: Int {
         max(0, min(100, 100 - usedPercent))
